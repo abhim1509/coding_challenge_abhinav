@@ -128,34 +128,70 @@ async function getUserComments(repoName, days) {
 
 function processOutput(resulSet, limitedAPICount, days, repo) {
   console.log(`Fetching comments for past ${days} days for ${repo}...`);
-  const bar1 = new cliProgress.SingleBar(
+  /*   const bar1 = new cliProgress.SingleBar(
     {},
     cliProgress.Presets.shades_classic
   );
+ */ const multibar = new cliProgress.MultiBar(
+    {
+      clearOnComplete: false,
+      hideCursor: true,
+    },
+    cliProgress.Presets.shades_grey
+  );
+
+  // add bars
+  //const b1 = multibar.create(, 0);
+
   /*let i = 1;
   console.log(Object.keys(resulSet).length);
   bar1.start(Object.keys(resulSet).length, i);
   console.log("");
  */
-  for (let key in resulSet) {
+  let i = 1;
+  const b1 = multibar.create(Object.keys(resulSet).length, i);
+
+  const _resultArr = [];
+  for (let item in resulSet) {
+    const payload = {
+      name: item,
+      ...resulSet[item],
+    };
+    _resultArr.push(payload);
+  }
+
+  let __result = _resultArr.sort((a, b) => {
+    return b.comments - a.comments;
+  });
+
+  console.log("____", __result);
+  b1.increment(i);
+  for (let key of __result) {
+    const { name, comments, commits } = key;
     //i++;
 
     console.log(
-      resulSet[key]["comments"] || 0,
+      comments || 0,
       " comments ",
-      key,
+      name,
       "( ",
-      resulSet[key]["commits"] || 0,
+      commits || 0,
       "commits )"
     );
-    //bar1.update(i);
   }
-  //bar1.stop();
-  console;
-  bar1.start(5000, 0);
-  bar1.increment(5000 - limitedAPICount);
+  // control bars
+  const b2 = multibar.create(5000, 0);
+
+  b2.increment(5000 - limitedAPICount);
+  //b2.update(20, {filename: "helloworld.txt"});
+
+  // stop all bars
+  multibar.stop();
+
+  //    bar1.start(5000, 0);
+  //  bar1.increment(5000 - limitedAPICount);
   //bar1.update(5000 - limitedAPICount);
-  bar1.stop();
+  // bar1.stop();
 }
 
 function processInputs() {
