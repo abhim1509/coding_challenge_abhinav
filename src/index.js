@@ -111,11 +111,7 @@ async function getUserComments(repoName, days) {
 
 function processOutput(resulSet, limitedAPICount, days, repo) {
   console.log(`Fetching comments for past ${days} days for ${repo}...`)
-  /*   const bar1 = new cliProgress.SingleBar(
-    {},
-    cliProgress.Presets.shades_classic
-  );
- */ const multibar = new cliProgress.MultiBar(
+  const multibar = new cliProgress.MultiBar(
     {
       clearOnComplete: false,
       hideCursor: true,
@@ -156,15 +152,9 @@ function processOutput(resulSet, limitedAPICount, days, repo) {
   const b2 = multibar.create(5000, 0)
 
   b2.increment(5000 - limitedAPICount)
-  //b2.update(20, {filename: "helloworld.txt"});
-
+ 
   // stop all bars
   multibar.stop()
-
-  //    bar1.start(5000, 0);
-  //  bar1.increment(5000 - limitedAPICount);
-  //bar1.update(5000 - limitedAPICount);
-  // bar1.stop();
 }
 
 function processInputs() {
