@@ -7,7 +7,7 @@ Github has [neat statistics](https://github.com/facebook/react/graphs/contributo
 You would need to fetch all existing comments for a given repository for a given period _or till the API limit is exhausted_, group by user and output it sorted by number of comments. Here is how we will execute your program and how output should look like:
 
 ```bash
-node index.js --repo anton/test-project --period 20d
+node src/index.js --repo anton/test-project --period 20d
 
   Fetching comments for past 20 days for "anton/test-project"...
 
