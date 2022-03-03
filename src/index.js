@@ -7,11 +7,30 @@ const {
 } = require('./utilities/network/config')
 const { GetRequest } = require('./utilities/network')
 const { isSameOrBefore } = require('./utilities/moment')
+const loadingSpinner = require('loading-spinner')
+
+const stopLoadingBar = function () {
+  loadingSpinner.stop()
+  process.stdout.write(`\nProgress completed\n\n`)
+}
+
+const startLoadingBar = function () {
+  process.stdout.write(
+    'Please Wait for it until we are downloading comments info...\n',
+  )
+
+  loadingSpinner.start(100, {
+    clearChar: true,
+  })
+
+  setTimeout(stopLoadingBar, 100000)
+}
 
 async function getUserComments(repoName, days) {
   const resulSet = {}
 
   // Dispatch API to retrive results
+  startLoadingBar()
   const [
     issueCommentResponse,
     pullRequestCommentResponse,
@@ -110,7 +129,6 @@ async function getUserComments(repoName, days) {
 }
 
 function processOutput(resulSet, limitedAPICount, days, repo) {
-  console.log(`Fetching comments for past ${days} days for ${repo}...`)
   const multibar = new cliProgress.MultiBar(
     {
       clearOnComplete: false,
@@ -118,9 +136,6 @@ function processOutput(resulSet, limitedAPICount, days, repo) {
     },
     cliProgress.Presets.shades_grey,
   )
-
-  let i = 1
-  const b1 = multibar.create(Object.keys(resulSet).length, i)
 
   const _resultArr = []
   for (let item in resulSet) {
@@ -135,26 +150,22 @@ function processOutput(resulSet, limitedAPICount, days, repo) {
     return b.comments - a.comments
   })
 
-  b1.increment(i)
+  stopLoadingBar()
   for (let key of __result) {
-    const { name, comments, commits } = key
+    const { name, comments = 0, commits = 0 } = key
 
-    console.log(
-      comments || 0,
-      ' comments ',
-      name,
-      '( ',
-      commits || 0,
-      'commits )',
-    )
+    process.stdout.write(`${comments} comments, ${name} (${commits} commits)\n`)
   }
+
+  console.log(`\nRemaining API count:  ${limitedAPICount}`)
   // control bars
   const b2 = multibar.create(5000, 0)
 
   b2.increment(5000 - limitedAPICount)
- 
+
   // stop all bars
   multibar.stop()
+  process.exit(1)
 }
 
 function processInputs() {
@@ -169,7 +180,10 @@ function processInputs() {
     repoFlag === '--repo' &&
     repoName
   ) {
-    console.log('Loading repo comments information...')
+    process.stdout.write(
+      `Fetching comments for past ${period} days for "${repoName}"...\n\n`,
+    )
+
     getUserComments(repoName, Number(period.substring(0, period.length - 1)))
   } else {
     console.log('Error in arguments passed.')
