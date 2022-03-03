@@ -1,133 +1,116 @@
-const apiBase = "https://api.github.com";
-const commentUrlGen = "https://api.github.com/repos/{repoName}/comments";
-const issueCommentsUrl =
-  "https://api.github.com/repos/{repoName}/issues/comments";
-const pullCommentsUrl =
-  "https://api.github.com/repos/{repoName}/pulls/comments";
-const statsUrl = "https://api.github.com/repos/{repoName}/stats/contributors";
-
-const axios = require("axios");
-const chalk = require("chalk");
-const config = require("./config");
-const moment = require("moment");
-const cliProgress = require("cli-progress");
-
-const http = axios.create({
-  baseURL: apiBase,
-  headers: {
-    Authorization: `token ${config.GITHUB_PERSONAL_ACCESS_TOKEN}`,
-  },
-});
+const cliProgress = require('cli-progress')
+const {
+  getIssueCommentsURL,
+  getPullRequestCommentsURL,
+  getRepoCommentsURL,
+  getStatsCommentsURL,
+} = require('./utilities/network/config')
+const { GetRequest } = require('./utilities/network')
+const { isSameOrBefore } = require('./utilities/moment')
 
 async function getUserComments(repoName, days) {
-  console.log(typeof days, days);
-  const url = commentUrlGen.replace("{repoName}", repoName);
-  console.log(url);
-  const url2 = issueCommentsUrl.replace("{repoName}", repoName);
-  console.log(url2);
-  const url3 = pullCommentsUrl.replace("{repoName}", repoName);
-  console.log(url3);
-  const url4 = statsUrl.replace("{repoName}", repoName);
-  console.log(url4);
+  const resulSet = {}
 
-  let resulSet = {};
+  // Dispatch API to retrive results
+  const [
+    issueCommentResponse,
+    pullRequestCommentResponse,
+    repoCommentResponse,
+    statsCommentResponse,
+  ] = await Promise.all([
+    await GetRequest(getIssueCommentsURL(repoName)),
+    await GetRequest(getPullRequestCommentsURL(repoName)),
+    await GetRequest(getRepoCommentsURL(repoName)),
+    await GetRequest(getStatsCommentsURL(repoName)),
+  ])
 
-  const [url1response, url2response, url3response, url4response] =
-    await Promise.all([
-      await http.get(url),
-      await http.get(url2),
-      await http.get(url3),
-      await http.get(url4),
-    ]);
-  //console.log(url4response.headers["x-ratelimit-remaining"]); //Updated "remaining Requests"
-  let limitedAPICount = url4response.headers["x-ratelimit-remaining"];
-  //let APILimiting
-  const url1respData = url1response.data;
-  const url2respData = url2response.data;
-  const url3respData = url3response.data;
-  const url4respData = url4response.data;
+  // Obtain pending API count
+  const limitedAPICount = statsCommentResponse.headers['x-ratelimit-remaining']
 
-  //console.log(url4respData)
+  // Obtain data set from API response
+  const issueResponseData = issueCommentResponse.data
+  const pullRequestResponseData = pullRequestCommentResponse.data
+  const repoResponseData = repoCommentResponse.data
+  const statsResponseData = statsCommentResponse.data
 
-  let lengthArr = [];
-  lengthArr.push(url1respData.length);
-  lengthArr.push(url2respData.length);
-  lengthArr.push(url3respData.length);
-  //lengthArr.push(url4respData.length)
+  // Form a new array
+  const _commentArr = [
+    issueResponseData,
+    pullRequestResponseData,
+    repoResponseData,
+  ]
 
-  let maxLength = lengthArr.reduce((acc, elem) => {
-    //console.log(acc, elem);
-    return acc < elem ? (acc = elem) : (acc = acc);
-  }, 0);
+  // Prepare array for find max array size
+  const commentsArr = [
+    _commentArr[0].length,
+    _commentArr[1].length,
+    _commentArr[2].length,
+  ]
 
-  //  console.log({ maxLength: maxLength });
+  // Get max array index & size
+  const maxArrIndex = commentsArr.indexOf(Math.max(...commentsArr))
+  const maxSizeArr = _commentArr[maxArrIndex]
+  const maxLength = maxSizeArr.length
 
   for (let i = 0; i < maxLength; i++) {
-    if (limitedAPICount && url1respData[i]) {
-      if (
-        days &&
-        moment()
-          .utc()
-          .subtract(days, "day")
-          .isSameOrBefore(url1respData[i].created_at)
-      ) {
-        if (!resulSet[url1respData[i].user.login]) {
-          resulSet[url1respData[i].user.login] = { comments: 0 };
-        }
-        resulSet[url1respData[i].user.login].comments = ++resulSet[
-          url1respData[i].user.login
-        ].comments;
+    // Handle for issue comments response
+    if (
+      limitedAPICount &&
+      issueResponseData[i] &&
+      days &&
+      isSameOrBefore(issueResponseData[i].created_at, days)
+    ) {
+      const { user } = issueResponseData[i]
+
+      if (!resulSet[user.login]) {
+        resulSet[user.login] = { comments: 0 }
       }
+      resulSet[user.login].comments = ++resulSet[user.login].comments
     }
 
-    if (limitedAPICount && url2respData[i]) {
-      if (
-        days &&
-        moment()
-          .utc()
-          .subtract(days, "day")
-          .isSameOrBefore(url2respData[i].created_at)
-      ) {
-        //console.log(element.user.login)
-        if (!resulSet[url2respData[i].user.login]) {
-          resulSet[url2respData[i].user.login] = { comments: 0 };
-        }
-        resulSet[url2respData[i].user.login].comments =
-          resulSet[url2respData[i].user.login].comments + 1;
+    // Handle for pull request comment response
+    if (
+      limitedAPICount &&
+      pullRequestResponseData[i] &&
+      days &&
+      isSameOrBefore(pullRequestResponseData[i].created_at, days)
+    ) {
+      const { user } = pullRequestResponseData[i]
+      if (!resulSet[user.login]) {
+        resulSet[user.login] = { comments: 0 }
       }
+      resulSet[user.login].comments = resulSet[user.login].comments + 1
     }
 
-    if (limitedAPICount && url3respData[i]) {
-      if (
-        days &&
-        moment()
-          .utc()
-          .subtract(days, "day")
-          .isSameOrBefore(url3respData[i].created_at)
-      ) {
-        //console.log(element.user.login)
-        if (!resulSet[url3respData[i].user.login]) {
-          resulSet[url3respData[i].user.login] = { comments: 0 };
-        }
-        resulSet[url3respData[i].user.login].comments =
-          resulSet[url3respData[i].user.login].comments + 1;
+    // Handle for repo comment response
+    if (
+      limitedAPICount &&
+      repoResponseData[i] &&
+      days &&
+      isSameOrBefore(repoResponseData[i].created_at, days)
+    ) {
+      const { user } = repoResponseData[i]
+      if (!resulSet[user.login]) {
+        resulSet[user.login] = { comments: 0 }
       }
+      resulSet[user.login].comments = resulSet[user.login].comments + 1
     }
   }
 
-  limitedAPICount &&
-    url4respData.forEach((element) => {
-      //console.log({[element.author.login]: element.total})
+  // Obtain results from stats response
+  if (limitedAPICount) {
+    statsResponseData.forEach((element) => {
       if (resulSet[element.author.login]) {
-        resulSet[element.author.login].commits = element.total;
+        resulSet[element.author.login].commits = element.total
       }
-    });
-  //console.log("in main", resulSet);
-  processOutput(resulSet, limitedAPICount, days, repoName);
+    })
+  }
+
+  processOutput(resulSet, limitedAPICount, days, repoName)
 }
 
 function processOutput(resulSet, limitedAPICount, days, repo) {
-  console.log(`Fetching comments for past ${days} days for ${repo}...`);
+  console.log(`Fetching comments for past ${days} days for ${repo}...`)
   /*   const bar1 = new cliProgress.SingleBar(
     {},
     cliProgress.Presets.shades_classic
@@ -137,56 +120,46 @@ function processOutput(resulSet, limitedAPICount, days, repo) {
       clearOnComplete: false,
       hideCursor: true,
     },
-    cliProgress.Presets.shades_grey
-  );
+    cliProgress.Presets.shades_grey,
+  )
 
-  // add bars
-  //const b1 = multibar.create(, 0);
+  let i = 1
+  const b1 = multibar.create(Object.keys(resulSet).length, i)
 
-  /*let i = 1;
-  console.log(Object.keys(resulSet).length);
-  bar1.start(Object.keys(resulSet).length, i);
-  console.log("");
- */
-  let i = 1;
-  const b1 = multibar.create(Object.keys(resulSet).length, i);
-
-  const _resultArr = [];
+  const _resultArr = []
   for (let item in resulSet) {
     const payload = {
       name: item,
       ...resulSet[item],
-    };
-    _resultArr.push(payload);
+    }
+    _resultArr.push(payload)
   }
 
-  let __result = _resultArr.sort((a, b) => {
-    return b.comments - a.comments;
-  });
+  const __result = _resultArr.sort((a, b) => {
+    return b.comments - a.comments
+  })
 
-  console.log("____", __result);
-  b1.increment(i);
+  b1.increment(i)
   for (let key of __result) {
-    const { name, comments, commits } = key;
-    //i++;
+    const { name, comments, commits } = key
 
     console.log(
       comments || 0,
-      " comments ",
+      ' comments ',
       name,
-      "( ",
+      '( ',
       commits || 0,
-      "commits )"
-    );
+      'commits )',
+    )
   }
   // control bars
-  const b2 = multibar.create(5000, 0);
+  const b2 = multibar.create(5000, 0)
 
-  b2.increment(5000 - limitedAPICount);
+  b2.increment(5000 - limitedAPICount)
   //b2.update(20, {filename: "helloworld.txt"});
 
   // stop all bars
-  multibar.stop();
+  multibar.stop()
 
   //    bar1.start(5000, 0);
   //  bar1.increment(5000 - limitedAPICount);
@@ -195,23 +168,22 @@ function processOutput(resulSet, limitedAPICount, days, repo) {
 }
 
 function processInputs() {
-  const args = process.argv.slice(2);
+  const args = process.argv.slice(2)
   const [repoFlag, repoName, periodFlag, period = Number.POSITIVE_INFINITY] =
-    args;
-  console.log(repoFlag, repoName, periodFlag, period);
+    args
   if (
     periodFlag &&
     period &&
-    period.endsWith("d") &&
+    period.endsWith('d') &&
     Number(period.substring(0, period.length - 1)) &&
-    repoFlag === "--repo" &&
+    repoFlag === '--repo' &&
     repoName
   ) {
-    console.log("validated");
-    getUserComments(repoName, Number(period.substring(0, period.length - 1)));
+    console.log('Loading repo comments information...')
+    getUserComments(repoName, Number(period.substring(0, period.length - 1)))
   } else {
-    console.log("Error in arguments passed.");
+    console.log('Error in arguments passed.')
   }
 }
 
-processInputs();
+processInputs()

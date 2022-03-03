@@ -1,8 +1,12 @@
-import { GetRequest } from '../../../utilities/network'
-import { getRepoCommentsURL } from '../../../utilities/network/config'
+const { GetRequest } = require('../../../utilities/network')
+const { getRepoCommentsURL } = require('../../../utilities/network/config')
 
-export const getRepoComments = async (repoName) => {
-  if (!repoName) return []
+const getRepoComments = async (repoName) => {
+  if (!repoName) {
+    return []
+  }
   const response = await GetRequest(getRepoCommentsURL(repoName))
   return response
 }
+
+module.exports = { getRepoComments }

@@ -1,19 +1,28 @@
-export const BASE_URL = 'https://api.github.com'
+const BASE_URL = 'https://api.github.com'
 
-export const getRepoCommentsURL = (repoName) => {
+const getRepoCommentsURL = (repoName) => {
   return `${BASE_URL}/repos/${repoName}/comments`
 }
 
-export const getIssueCommentsURL = (repoName) => {
+const getIssueCommentsURL = (repoName) => {
   return `${BASE_URL}/repos/${repoName}/issues/comments`
 }
 
-export const getPullRequestCommentsURL = (repoName) => {
+const getPullRequestCommentsURL = (repoName) => {
   return `${BASE_URL}/repos/${repoName}/pulls/comments`
 }
 
-export const getStatsCommentsURL = (repoName) => {
-  return `${BASE_URL}/repos/${repoName}/stats/comments`
+const getStatsCommentsURL = (repoName) => {
+  return `${BASE_URL}/repos/${repoName}/stats/contributors`
 }
 
-export const SUCCESS_STATUS = 200
+const SUCCESS_STATUS = 200
+
+module.exports = {
+  BASE_URL,
+  getRepoCommentsURL,
+  getIssueCommentsURL,
+  getPullRequestCommentsURL,
+  getStatsCommentsURL,
+  SUCCESS_STATUS,
+}

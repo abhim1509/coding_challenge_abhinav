@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "start": "node ./src",
-    "dev": "nodemon ./src/index.js --repo facebook/yoga --period 2190d",
+    "dev": "node ./src/index.js --repo facebook/yoga --period 2190d",
     "eslint": "eslint src/ --ext .js || true",
     "eslint:fix": "eslint src/ --ext .js --fix || true"
   },
