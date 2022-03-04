@@ -9,6 +9,7 @@ const HTTP = axios.create({
   },
 })
 
+//Parsing the incoming request.
 const GetRequest = async (url) => {
   try {
     const response = await HTTP.get(url)

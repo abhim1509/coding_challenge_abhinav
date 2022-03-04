@@ -3,17 +3,19 @@ const {
   getIssueCommentsURL,
   getPullRequestCommentsURL,
   getRepoCommentsURL,
-  getStatsCommentsURL,
+  getStatsCommitsURL,
 } = require('./utilities/network/config')
 const { GetRequest } = require('./utilities/network')
 const { isSameOrBefore } = require('./utilities/moment')
 const loadingSpinner = require('loading-spinner')
 
+//Stops the loading bar.
 const stopLoadingBar = function () {
   loadingSpinner.stop()
   process.stdout.write(`\nProgress completed\n\n`)
 }
 
+//Starts the loading bar.
 const startLoadingBar = function () {
   process.stdout.write(
     'Please Wait for it until we are downloading comments info...\n',
@@ -26,10 +28,15 @@ const startLoadingBar = function () {
   setTimeout(stopLoadingBar, 100000)
 }
 
+/**
+ * Retrieves users comments details.
+ * @param {String} repoName - Repository name.
+ * @param {Number} days - Number of days data to be retrieved.
+ */
 async function getUserComments(repoName, days) {
   const resulSet = {}
 
-  // Dispatch API to retrive results
+  // Dispatch API to retrive results.
   startLoadingBar()
   const [
     issueCommentResponse,
@@ -40,39 +47,39 @@ async function getUserComments(repoName, days) {
     await GetRequest(getIssueCommentsURL(repoName)),
     await GetRequest(getPullRequestCommentsURL(repoName)),
     await GetRequest(getRepoCommentsURL(repoName)),
-    await GetRequest(getStatsCommentsURL(repoName)),
+    await GetRequest(getStatsCommitsURL(repoName)),
   ])
 
-  // Obtain pending API count
+  // Obtain pending API count.
   const limitedAPICount = statsCommentResponse.headers['x-ratelimit-remaining']
 
-  // Obtain data set from API response
+  // Obtain data set from API response.
   const issueResponseData = issueCommentResponse.data
   const pullRequestResponseData = pullRequestCommentResponse.data
   const repoResponseData = repoCommentResponse.data
   const statsResponseData = statsCommentResponse.data
 
-  // Form a new array
+  // Forms a new array.
   const _commentArr = [
     issueResponseData,
     pullRequestResponseData,
     repoResponseData,
   ]
 
-  // Prepare array for find max array size
+  // Prepare an array for find max array size.
   const commentsArr = [
     _commentArr[0].length,
     _commentArr[1].length,
     _commentArr[2].length,
   ]
 
-  // Get max array index & size
+  // Get max array index & size.
   const maxArrIndex = commentsArr.indexOf(Math.max(...commentsArr))
   const maxSizeArr = _commentArr[maxArrIndex]
   const maxLength = maxSizeArr.length
 
   for (let i = 0; i < maxLength; i++) {
-    // Handle for issue comments response
+    // Handles for issue comments response.
     if (
       limitedAPICount &&
       issueResponseData[i] &&
@@ -87,7 +94,7 @@ async function getUserComments(repoName, days) {
       resulSet[user.login].comments = ++resulSet[user.login].comments
     }
 
-    // Handle for pull request comment response
+    // Handles for pull request comment response.
     if (
       limitedAPICount &&
       pullRequestResponseData[i] &&
@@ -101,7 +108,7 @@ async function getUserComments(repoName, days) {
       resulSet[user.login].comments = resulSet[user.login].comments + 1
     }
 
-    // Handle for repo comment response
+    // Handle for repo comments response.
     if (
       limitedAPICount &&
       repoResponseData[i] &&
@@ -116,7 +123,7 @@ async function getUserComments(repoName, days) {
     }
   }
 
-  // Obtain results from stats response
+  // Obtain results from stats response.
   if (limitedAPICount) {
     statsResponseData.forEach((element) => {
       if (resulSet[element.author.login]) {
@@ -125,10 +132,15 @@ async function getUserComments(repoName, days) {
     })
   }
 
-  processOutput(resulSet, limitedAPICount, days, repoName)
+  processOutput(resulSet, limitedAPICount)
 }
 
-function processOutput(resulSet, limitedAPICount, days, repo) {
+/**
+ * Processes output format.
+ * @param {object} resulSet - User object with comment and commit details.
+ * @param {Number} limitedAPICount - API count remaining.
+ */
+function processOutput(resulSet, limitedAPICount) {
   const multibar = new cliProgress.MultiBar(
     {
       clearOnComplete: false,
@@ -168,6 +180,7 @@ function processOutput(resulSet, limitedAPICount, days, repo) {
   process.exit(1)
 }
 
+//Processes inputs.
 function processInputs() {
   const args = process.argv.slice(2)
   const [repoFlag, repoName, periodFlag, period = Number.POSITIVE_INFINITY] =

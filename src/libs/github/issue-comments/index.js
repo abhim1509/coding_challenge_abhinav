@@ -1,6 +1,10 @@
 const { GetRequest } = require('../../../utilities/network')
 const { getIssueCommentsURL } = require('../../../utilities/network/config')
 
+/**
+ * Retrieves issue comments.
+ * @param {string} repoName - Repository name.
+ */
 const getIssueComments = async (repoName) => {
   if (!repoName) {
     return []

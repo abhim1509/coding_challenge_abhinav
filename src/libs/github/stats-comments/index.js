@@ -1,14 +1,18 @@
 const { GetRequest } = require('../../../utilities/network')
-const { getStatsCommentsURL } = require('../../../utilities/network/config')
+const { getStatsCommitsURL } = require('../../../utilities/network/config')
 
-const getStatsComments = async (repoName) => {
+/**
+ * Retrieves repository stats.
+ * @param {string} repoName - Repository name.
+ */
+const getStatsCommits = async (repoName) => {
   if (!repoName) {
     return []
   }
-  const response = await GetRequest(getStatsCommentsURL(repoName))
+  const response = await GetRequest(getStatsCommitsURL(repoName))
   return response
 }
 
 module.exports = {
-  getStatsComments,
+  getStatsCommits,
 }
